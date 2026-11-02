@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kuis Custom Room & Soal</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: #46178f; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .card { background: #fff; color: #333; border-radius: 12px; width: 100%; max-width: 650px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .hidden { display: none; }
+        
+        h1, h2, h3 { text-align: center; margin-bottom: 15px; color: #333; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; }
+        .input-group input:focus, .input-group select:focus { border-color: #46178f; }
+        
+        .btn { background: #26890c; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:hover { background: #20720a; }
+        .btn-secondary { background: #46178f; }
+        .btn-secondary:hover { background: #33106a; }
+        .btn-danger { background: #e21b3c; }
+        .btn-danger:hover { background: #b8122d; }
+
+        /* Quiz UI */
+        .quiz-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 15px; color: #666; font-size: 14px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .badge { background: #46178f; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .question-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; }
+        .btn-option { padding: 12px 15px; text-align: left; font-size: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f9f9f9; cursor: pointer; font-weight: 500; }
+        .btn-option.selected { background: #46178f; color: white; border-color: #46178f; }
+
+        /* Result UI */
+        .score-box { text-align: center; background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .score-number { font-size: 40px; color: #46178f; font-weight: bold; }
+        .subject-list { list-style: none; margin-top: 10px; }
+        .subject-item { padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
+        .mastered { background: #d4edda; color: #155724; }
+        .not-mastered { background: #f8d7da; color: #721c24; }
+
+        /* Creator UI */
+        .q-item { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- 1. Tampilan Masuk Room & Nama -->
+    <div id="login-screen">
+        <h1>Masuk Kuis</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">Masukkan Kode Room dan Nama Anda</p>
+        <div class="input-group">
+            <label>Kode Room</label>
+            <input type="text" id="room-code" placeholder="Masukkan kode room...">
+        </div>
+        <div class="input-group">
+            <label>Nama Lengkap Siswa</label>
+            <input type="text" id="student-name" placeholder="Masukkan nama Anda...">
+        </div>
+        <button class="btn" onclick="enterRoom()">Masuk Room</button>
+        <button class="btn btn-secondary" onclick="showAdminScreen()">⚙️ Buat Soal / Ubah Kode Room</button>
+    </div>
+
+    <!-- 2. Tampilan Admin (Atur Kode Room & Buat Soal) -->
+    <div id="admin-screen" class="hidden">
+        <h2>Panel Pembuat Kuis</h2>
+        
+        <div class="input-group">
+            <label>Atur Kode Room Aktif</label>
+            <input type="text" id="admin-room-code-input" value="KUIS123">
+        </div>
+        
+        <hr style="margin: 15px 0;">
+        <h3 style="text-align: left; font-size: 16px;">Tambah Soal Baru</h3>
+        
+        <div class="input-group">
+            <label>Mata Pelajaran (Mapel)</label>
+            <input type="text" id="add-subject" placeholder="Contoh: Matematika, IPA, B.Indo">
+        </div>
+        <div class="input-group">
+            <label>Pertanyaan / Soal</label>
+            <input type="text" id="add-question" placeholder="Tuliskan soal di sini...">
+        </div>
+        <div class="input-group">
+            <label>Pilihan Jawaban</label>
+            <input type="text" id="opt-0" placeholder="Pilihan A" style="margin-bottom: 5px;">
+            <input type="text" id="opt-1" placeholder="Pilihan B" style="margin-bottom: 5px;">
+            <input type="text" id="opt-2" placeholder="Pilihan C" style="margin-bottom: 5px;">
+            <input type="text" id="opt-3" placeholder="Pilihan D">
+        </div>
+        <div class="input-group">
+            <label>Kunci Jawaban Benar</label>
+            <select id="add-correct-opt">
+                <option value="0">Pilihan A</option>
+                <option value="1">Pilihan B</option>
+                <option value="2">Pilihan C</option>
+                <option value="3">Pilihan D</option>
+            </select>
+        </div>
+        <button class="btn" onclick="addCustomQuestion()">+ Simpan Soal</button>
+
+        <h3 style="text-align: left; font-size: 16px; margin-top: 20px;">Daftar Soal Saat Ini (<span id="q-count">0</span>):</h3>
+        <div id="questions-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px;"></div>
+
+        <button class="btn btn-secondary" onclick="saveAdminSettings()">Kembali ke Halaman Masuk</button>
+    </div>
+
+    <!-- 3. Tampilan Siap & Tombol Mulai -->
+    <div id="ready-screen" class="hidden" style="text-align: center;">
+        <h2>Siap Mengerjakan!</h2>
+        <p style="margin: 15px 0; font-size: 16px;">Halo <b id="display-name" style="color: #46178f;"></b>, Anda sudah berada di Room <b id="display-room"></b>.</p>
+        <p style="color: #666; margin-bottom: 20px;">Tekan tombol di bawah ini jika Anda sudah siap.</p>
+        <button class="btn" onclick="startQuiz()">MULAI KERJAKAN SOAL</button>
+    </div>
+
+    <!-- 4. Tampilan Pengerjaan Soal -->
+    <div id="quiz-screen" class="hidden">
+        <div class="quiz-header">
+            <div><span id="q-tracker">Soal 1/1</span> | <span class="badge" id="q-subject">Mapel</span></div>
+            <div>Siswa: <span id="quiz-student-name"></span></div>
+        </div>
+        <div class="question-title" id="question-text">Teks Pertanyaan</div>
+        <div class="options-grid" id="options-container"></div>
+        <button class="btn" id="next-btn" onclick="nextQuestion()">Lanjut</button>
+    </div>
+
+    <!-- 5. Tampilan Hasil Akhir -->
+    <div id="result-screen" class="hidden">
+        <h2>Hasil Kuis</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 15px;">Siswa: <b id="res-name"></b> (Room: <span id="res-room"></span>)</p>
+        
+        <div class="score-box">
+            <div>Total Nilai Akhir</div>
+            <div class="score-number" id="final-score">0</div>
+        </div>
+
+        <h3 style="text-align: left;">Mata Pelajaran yang Dikuasai (≥ 70%)</h3>
+        <ul id="list-mastered" class="subject-list"></ul>
+
+        <h3 style="text-align: left; margin-top: 15px;">Mata Pelajaran Belum Dikuasai (< 70%)</h3>
+        <ul id="list-not-mastered" class="subject-list"></ul>
+
+        <button class="btn btn-secondary" onclick="location.reload()" style="margin-top: 20px;">Selesai & Keluar</button>
+    </div>
+</div>
+
+<script>
+    // System Data
+    let activeRoomCode = "KUIS123";
+    let customQuestions = [
+        { subject: "Matematika", question: "Berapakah 12 x 5?", options: ["50", "55", "60", "65"], answer: 2 },
+        { subject: "Matematika", question: "Berapakah 100 : 4?", options: ["20", "25", "30", "35"], answer: 1 },
+        { subject: "IPA", question: "Gas untuk bernapas manusia adalah...", options: ["Nitrogen", "Oksigen", "Karbondioksida", "Helium"], answer: 1 },
+        { subject: "IPA", question: "Tumbuhan hijau membuat makanan dengan...", options: ["Fotosintesis", "Respirasi", "Oksidasi", "Evolusi"], answer: 0 }
+    ];
+
+    let studentData = { name: "", room: "" };
+    let currentQIndex = 0;
+    let selectedAnswers = [];
+
+    // --- LOGIC ROOM & LOGIN ---
+    function enterRoom() {
+        const roomInput = document.getElementById('room-code').value.trim();
+        const nameInput = document.getElementById('student-name').value.trim();
+
+        if (!roomInput || !nameInput) {
+            alert("Harap isi Kode Room dan Nama Lengkap!");
+            return;
+        }
+
+        if (roomInput.toUpperCase() !== activeRoomCode.toUpperCase()) {
+            alert(`Kode Room salah! Kode room aktif saat ini adalah: ${activeRoomCode}`);
+            return;
+        }
+
+        if (customQuestions.length === 0) {
+            alert("Belum ada soal yang dibuat! Buat soal terlebih dahulu di panel Admin.");
+            return;
+        }
+
+        studentData.room = roomInput.toUpperCase();
+        studentData.name = nameInput;
+
+        document.getElementById('display-name').innerText = studentData.name;
+        document.getElementById('display-room').innerText = studentData.room;
+
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('ready-screen').classList.remove('hidden');
+    }
+
+    // --- LOGIC ADMIN (BUAT SOAL & UBAH KODE ROOM) ---
+    function showAdminScreen() {
+        document.getElementById('admin-room-code-input').value = activeRoomCode;
+        renderAdminQuestionsList();
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('admin-screen').classList.remove('hidden');
+    }
+
+    function saveAdminSettings() {
+        const newCode = document.getElementById('admin-room-code-input').value.trim();
+        if (newCode) activeRoomCode = newCode.toUpperCase();
+        document.getElementById('admin-screen').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+    }
+
+    function addCustomQuestion() {
+        const subject = document.getElementById('add-subject').value.trim();
+        const question = document.getElementById('add-question').value.trim();
+        const opt0 = document.getElementById('opt-0').value.trim();
+        const opt1 = document.getElementById('opt-1').value.trim();
+        const opt2 = document.getElementById('opt-2').value.trim();
+        const opt3 = document.getElementById('opt-3').value.trim();
+        const correctOpt = parseInt(document.getElementById('add-correct-opt').value);
+
+        if (!subject || !question || !opt0 || !opt1 || !opt2 || !opt3) {
+            alert("Harap lengkapi semua data soal dan opsi jawaban!");
+            return;
+        }
+
+        customQuestions.push({
+            subject: subject,
+            question: question,
+            options: [opt0, opt1, opt2, opt3],
+            answer: correctOpt
+        });
+
+        // Reset Form
+        document.getElementById('add-question').value = '';
+        document.getElementById('opt-0').value = '';
+        document.getElementById('opt-1').value = '';
+        document.getElementById('opt-2').value = '';
+        document.getElementById('opt-3').value = '';
+
+        alert("Soal berhasil ditambahkan!");
+        renderAdminQuestionsList();
+    }
+
+    function deleteQuestion(index) {
+        customQuestions.splice(index, 1);
+        renderAdminQuestionsList();
+    }
+
+    function renderAdminQuestionsList() {
+        const listContainer = document.getElementById('questions-list');
+        document.getElementById('q-count').innerText = customQuestions.length;
+        listContainer.innerHTML = '';
+
+        customQuestions.forEach((q, idx) => {
+            const item = document.createElement('div');
+            item.className = 'q-item';
+            item.innerHTML = `
+                <div><b>[${q.subject}]</b> ${q.question}</div>
+                <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px; width: auto; margin:0;" onclick="deleteQuestion(${idx})">Hapus</button>
+            `;
+            listContainer.appendChild(item);
+        });
+    }
+
+    // --- LOGIC PENGERJAAN KUIS ---
+    function startQuiz() {
+        document.getElementById('ready-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('quiz-student-name').innerText = studentData.name;
+        
+        currentQIndex = 0;
+        selectedAnswers = new Array(customQuestions.length).fill(null);
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = customQuestions[currentQIndex];
+        document.getElementById('q-tracker').innerText = `Soal ${currentQIndex + 1}/${customQuestions.length}`;
+        document.getElementById('q-subject').innerText = q.subject;
+        document.getElementById('question-text').innerText = q.question;
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = `btn-option ${selectedAnswers[currentQIndex] === idx ? 'selected' : ''}`;
+            btn.innerText = `${String.fromCharCode(65 + idx)}. ${opt}`;
+            btn.onclick = () => selectOption(idx);
+            optionsContainer.appendChild(btn);
+        });
+
+        const nextBtn = document.getElementById('next-btn');
+        if (currentQIndex === customQuestions.length - 1) {
+            nextBtn.innerText = "Selesai & Lihat Nilai";
+        } else {
+            nextBtn.innerText = "Lanjut";
+        }
+    }
+
+    function selectOption(index) {
+        selectedAnswers[currentQIndex] = index;
+        showQuestion();
+    }
+
+    function nextQuestion() {
+        if (selectedAnswers[currentQIndex] === null) {
+            alert("Pilih salah satu jawaban terlebih dahulu!");
+            return;
+        }
+
+        if (currentQIndex < customQuestions.length - 1) {
+            currentQIndex++;
+            showQuestion();
+        } else {
+            calculateResults();
+        }
+    }
+
+    // --- LOGIC PERHITUNGAN NILAI PER MAPEL ---
+    function calculateResults() {
+        let totalCorrect = 0;
+        const subjectStats = {};
+
+        customQuestions.forEach(q => {
+            if (!subjectStats[q.subject]) {
+                subjectStats[q.subject] = { correct: 0, total: 0 };
+            }
+            subjectStats[q.subject].total++;
+        });
+
+        customQuestions.forEach((q, idx) => {
+            if (selectedAnswers[idx] === q.answer) {
+                totalCorrect++;
+                subjectStats[q.subject].correct++;
+            }
+        });
+
+        const finalScore = Math.round((totalCorrect / customQuestions.length) * 100);
+
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        document.getElementById('res-name').innerText = studentData.name;
+        document.getElementById('res-room').innerText = studentData.room;
+        document.getElementById('final-score').innerText = finalScore;
+
+        const masteredList = document.getElementById('list-mastered');
+        const notMasteredList = document.getElementById('list-not-mastered');
+        
+        masteredList.innerHTML = '';
+        notMasteredList.innerHTML = '';
+
+        Object.keys(subjectStats).forEach(subject => {
+            const stat = subjectStats[subject];
+            const percentage = Math.round((stat.correct / stat.total) * 100);
+            
+            const li = document.createElement('li');
+            li.className = `subject-item ${percentage >= 70 ? 'mastered' : 'not-mastered'}`;
+            li.innerHTML = `<span>${subject}</span> <span>Nilai: ${percentage}% (${stat.correct}/${stat.total} Benar)</span>`;
+
+            if (percentage >= 70) {
+                masteredList.appendChild(li);
+            } else {
+                notMasteredList.appendChild(li);
+            }
+        });
+
+        if (masteredList.children.length === 0) {
+            masteredList.innerHTML = '<li style="color:#666; font-style:italic;">Tidak ada mapel yang mencapai 70%.</li>';
+        }
+        if (notMasteredList.children.length === 0) {
+            notMasteredList.innerHTML = '<li style="color:#666; font-style:italic;">Selamat! Semua mapel berhasil dikuasai.</li>';
+        }
+    }
+</script>
+</body>
+</html>
